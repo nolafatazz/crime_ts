@@ -1,0 +1,494 @@
+---
+title: "Untitled"
+author: "Bradley Ruiz"
+date: "4/26/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+repo = "http://cran.us.r-project.org"
+
+if(!require(tidyverse)) install.packages("tidyverse", repos = repo)
+if(!require(ggplot2)) install.packages("ggplot2", repos = repo)
+if(!require(trend)) install.packages("trend", repos = repo)
+if(!require(timetk)) install.packages("timetk", repos = repo)
+if(!require(lubridate)) install.packages("lubridate", repos = repo)
+if(!require(astsa)) install.packages("astsa", repos = repo)
+if(!require(forecast)) install.packages("forecast", repos = repo)
+if(!require(tseries)) install.packages("tseries", repos = repo)
+if(!require(TSA)) install.packages("TSA", repos = repo)
+if(!require(rmarkdown)) install.packages("rmarkdown", repos = repo)
+if(!require(fpp2)) install.packages("fpp2", repos = repo)
+if(!require(readxl)) install.packages("readxl", repos = repo)
+if(!require(knitr)) install.packages("knitr", repos = repo)
+if(!require(kableExtra)) install.packages("kableExtra", repos = repo)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r, include =FALSE, echo=FALSE}
+crimes <- read_xlsx('data/crime.xlsx', 
+                    sheet = 'crimes')
+
+#names columns by creating vector of names
+colnames(crimes) <- c('date', 'crime', 'desc')
+
+#read in population worksheet
+pop <- read_xlsx('data/pop.xlsx', 
+                 sheet = 'pop')
+#name column names of population data frame
+colnames(pop) <- c('month', 'year', 'pop')
+
+#new data frame to combine with crime occurrence to make rate.
+crimes_trans <- crimes %>% 
+        mutate(month = month(date),
+               year = year(date)) %>% 
+        filter(year < 2021) %>% 
+        group_by(month, year, crime) %>% 
+        summarize(count = n())
+
+#merge dataframes to reflect crime rate per occurrence
+crime_pop <- left_join(crimes_trans, 
+                       pop, 
+                       by = c('month', 'year')) %>% 
+        mutate(rate = count/pop,
+               date = date(paste0(year,'-',month,'-1'))) %>% 
+        select(month, year, date, crime, rate) %>% 
+        pivot_wider(names_from = 'crime', 
+                    values_from = c('rate'))
+
+
+
+
+#Make TS objects of each of the crime type.
+theft_ts <- ts(crime_pop$THEFT, 
+               start = c(2011, 1),
+               frequency = 12)
+
+homicide_ts<- ts(crime_pop$HOMICIDE, start = c(2011, 1),
+                 frequency = 12)
+
+narcotics_ts <- ts(crime_pop$NARCOTICS, start = c(2011, 1),
+                   frequency = 12)
+
+sexual_assault_ts <- ts(crime_pop$`SEXUAL ASSAULT`, start = c(2011, 1),
+                        frequency = 12)
+
+assault_battery_ts <- ts(crime_pop$ASSAULT +crime_pop$BATTERY, start = c(2011, 1),
+                         frequency = 12)
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+auto.arima(narcotics_ts)
+
+```
+
+```{r, echo=TRUE, include =TRUE}
+narcotics_model1 <- sarima(narcotics_ts,1,1,0,2,0,1,12)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+narcotics_model2 <- sarima(narcotics_ts,1,1,0,2,0,1,12, no.constant = TRUE)
+
+```
+
+
+```{r, echo=TRUE, include=TRUE}
+
+narcotics_model3 <- sarima(narcotics_ts,1,1,0,2,0,1,10)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+narcotics_model4 <- sarima(narcotics_ts,1,1,0,1,0,1,10, no.constant = TRUE)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+narcotics_model5 <- sarima(narcotics_ts,0,1,1,1,0,1,10, no.constant = TRUE)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoAR(ar = c(0,0,0,0,0,0,0,0,.9528), ma = c(-.9783,0,0,0,0,0,0,0,0,-.5613,.5491),  
+               lag.max =  50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoMA(ar = c(0,0,0,0,0,0,0,0,.9528), ma = c(-.9783,0,0,0,0,0,0,0,0,-.5613,.5491),  
+               lag.max =  500))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+polyroot(.9528)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+polyroot(c(-.9783, -.5613, .5491))
+
+```
+
+```{r, include=TRUE, echo= TRUE}
+
+narcotics_forecast <- sarima.for(narcotics_ts,24,0,1,1,1,0,1,10, no.constant = TRUE)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+auto.arima(theft_ts)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+theft_model1 <- sarima(theft_ts,2,0,2,0,0,1,12, no.constant = TRUE)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+theft_model2 <- sarima(theft_ts,2,0,2,0,0,1,10)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+theft_model3 <- sarima(theft_ts,1,0,1,0,0,1,10)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+theft_model4 <- sarima(theft_ts,1,0,1,1,0,0,10)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoAR(ar = c(.7943,0,0,0,0,0,0,0,.9916), ma = -.6165, 
+               lag.max =  50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoMA(ar = c(.7943,0,0,0,0,0,0,0,.9916), ma = -.6165, 
+               lag.max =  50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+theft_model5 <- sarima(theft_ts,0,1,1,1,0,0,10, no.constant = TRUE)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoAR(ar = c(0,0,0,0,0,0,0,0,0,.5730), ma = -.7841, 
+               lag.max =  50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoMA(ar = c(0,0,0,0,0,0,0,0,0,.5730), ma = -.7841, 
+               lag.max =  50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+polyroot(.5730)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+polyroot(-.7841)
+
+```
+
+```{r, include=TRUE, echo=TRUE}
+
+theft_forecast <- sarima.for(theft_ts,24,0,1,1,1,0,0,10)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+auto.arima(homicide_ts)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+homicide_model1 <- sarima(homicide_ts,0,0,0,1,0,0,12)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+homicide_model2 <- sarima(homicide_ts,0,0,0,1,0,0,10)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+homicide_model3 <- sarima(homicide_ts,0,0,0,1,0,0,10, no.constant = TRUE)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+homicide_model4 <- sarima(homicide_ts,0,0,0,1,0,1,10)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+homicide_model5 <- sarima(homicide_ts,0,0,0,1,0,1,10, no.constant = TRUE)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoAR(ar = c(0,0,0,0,0,0,0,0,0,.9916), ma = c(0,0,0,0,0,0,0,0,0,0, -.5250), 
+               lag.max =  50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoMA(ar = c(0,0,0,0,0,0,0,0,0,.9916), ma = c(0,0,0,0,0,0,0,0,0,0, -.5250), 
+               lag.max = 1000))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+polyroot(0.9916)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+polyroot(-.5250)
+
+```
+
+```{r, include =TRUE, echo=TRUE}
+
+homicide_forecast <- sarima.for(homicide_ts,24,0,0,0,1,0,1,10, no.constant = TRUE)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+auto.arima(sexual_assault_ts)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+sex_assault_model1 <- sarima(sexual_assault_ts,1,1,1, no.constant = TRUE)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoAR(ar = .3378, ma = -.9716, 
+               lag.max =  50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoMA(ar = .3378, ma = -.9716, 
+               lag.max =  50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+polyroot(.3378)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+polyroot(-.9716)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+sex_assault_model2 <- sarima(sexual_assault_ts,1,1,1,1,0,0,10, no.constant = TRUE)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoAR(ar = c(.2543,0,0,0,0,0,0,0,0,.344,0.0875), ma = -.9775, 
+               lag.max = 50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoMA(ar = c(.2543,0,0,0,0,0,0,0,0,.344,0.0875), ma = -.9775, 
+               lag.max = 50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+polyroot(c(.2543, .344, .0875))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+polyroot(-.9775)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+sex_assault_model3 <- sarima(sexual_assault_ts,1,1,1,1,0,1,10, no.constant = TRUE)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+sex_assault_model4 <- sarima(sexual_assault_ts,0,1,1,1,0,1,10, no.constant = TRUE)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoAR(ar = c(0,0,0,0,0,0,0,0,0, .9568), ma = c(-.9609,0,0,0,0,0,0,0,0,-.7754,.7451), 
+               lag.max = 50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoMA(ar = c(0,0,0,0,0,0,0,0,0, .9568), ma = c(-.9609,0,0,0,0,0,0,0,0,-.7754,.7451), 
+               lag.max = 50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+polyroot(.9568)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+polyroot(c(-.9609, -.7754, .7451))
+
+```
+
+```{r, include=TRUE, echo=TRUE}
+
+sex_assault_forecast <- sarima.for(sexual_assault_ts,24,0,1,1,1,0,1,10, no.constant = TRUE)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+auto.arima(assault_battery_ts)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+abatt_model1 <- sarima(assault_battery_ts,1,0,0)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+abatt_model2 <- sarima(assault_battery_ts,1,0,0,0,0,1,10)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+abatt_model3 <- sarima(assault_battery_ts,1,0,1,1,0,0,10)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoAR(ar = c(.8051,0,0,0,0,0,0,0,0, .8009, .6448), ma = -.5807, 
+               lag.max = 50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoMA(ar = c(.8051,0,0,0,0,0,0,0,0, .8009, .6448), ma = -.5807, 
+               lag.max = 50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+abatt_model4 <- sarima(assault_battery_ts,1,1,1,1,0,0,10)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+abatt_model5 <- sarima(assault_battery_ts,0,1,1,1,0,0,10, no.constant = TRUE)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoAR(ar = c(0,0,0,0,0,0,0,0,0, .8046), ma = -.7375, 
+               lag.max = 50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+round(ARMAtoMA(ar = c(0,0,0,0,0,0,0,0,0, .8046), ma = -.7375, 
+               lag.max = 50))
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+polyroot(-.7375)
+
+```
+
+```{r, echo=TRUE, include=TRUE}
+
+polyroot(.8046)
+
+```
+```{r, include=TRUE, echo=TRUE}
+
+abatt_forecast <- sarima.for(assault_battery_ts,24,0,1,1,1,0,0,10)
+
+```

@@ -9,7 +9,7 @@ library(tseries)
 library(TSA)
 library(rmarkdown)
 library(fpp2)
-library(readxl)
+
 sar
 
 install.packages("TSA")
@@ -47,22 +47,8 @@ crime_pop <- left_join(crimes_trans,
   select(month, year, date, crime, rate) %>% 
   pivot_wider(names_from = 'crime', 
               values_from = c('rate'))
-  
-crime_name <- 'ASSAULT'
 
-p <-  crime_pop %>% 
-  ggplot() +
-  geom_line(aes(x = date, y = get(crime_name))) +
-  ggtitle(label = paste0('Crime Rate for ', crime_name),
-          subtitle = 'From 2011 to 2020') +
-  ylab(crime_name) +
-  xlab('Date') +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.subtitle = element_text(hjust = 0.5)) +
-  
-  geom_smooth(aes(x = date, y = get(crime_name)))
 
-ggplotly(p)
 
 
 #Make TS objects of each of the crime type.
@@ -78,126 +64,6 @@ narcotics_ts <- ts(crime_pop$NARCOTICS, start = c(2011, 1),
 
 sexual_assault_ts <- ts(crime_pop$`SEXUAL ASSAULT`, start = c(2011, 1),
                         frequency = 12)
-
-assault_battery_ts <- ts(crime_pop$ASSAULT +crime_pop$BATTERY, start = c(2011, 1),
-                         frequency = 12)
-
-#First difference objects of crimes.
-first_theft <- ts(diff(theft_ts))
-first_homicide <- ts(diff(homicide_ts))
-first_sexual_assault <- ts(diff(sexual_assault_ts))
-first_narcotics <- ts(diff(narcotics_ts))
-first_battery_assault <- ts(diff(assault_battery_ts))
-
-#Second difference objects of crimes.
-second_theft <- ts(diff(theft_ts,differences = 2))
-second_homicide <- ts(diff(homicide_ts,difference = 2))
-second_sexual_assault <- ts(diff(sexual_assault_ts, differences = 2))
-second_narcotics <- ts(diff(narcotics_ts, differences = 2))
-second_battery_assault <- ts(diff(assault_battery_ts, differences = 2))
-
-
-
-
-
-bartels.test(sexual_assault_ts)
-
- 
-#Plots made using GGPlot
-theftplot <-  crime_pop %>% 
-  ggplot() +
-  geom_line(aes(x = date, y = theft_ts)) +
-  ggtitle(label = paste0('Crime Rate for Theft'),
-          subtitle = 'From 2011 to 2020') +
-  ylab('Theft Rate per Capita') +
-  xlab('Date') +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.subtitle = element_text(hjust = 0.5)) +
-  
-  geom_smooth(aes(x = date, y = theft_ts))
-
-ggplotly(theftplot)
-
-homicideplot <-  crime_pop %>% 
-  ggplot() +
-  geom_line(aes(x = date, y = homicide_ts)) +
-  ggtitle(label = paste0('Crime Rate for Homicide'),
-          subtitle = 'From 2011 to 2020') +
-  ylab('Homice Rate per Capita') +
-  xlab('Date') +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.subtitle = element_text(hjust = 0.5)) +
-  
-  geom_smooth(aes(x = date, y = homicide_ts))
-
-sexualplot <-  crime_pop %>% 
-  ggplot() +
-  geom_line(aes(x = date, y = sexual_assault_ts)) +
-  ggtitle(label = paste0('Crime Rate for Sexual Assault'),
-          subtitle = 'From 2011 to 2020') +
-  ylab('Sexual Assault Rate per Capita') +
-  xlab('Date') +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.subtitle = element_text(hjust = 0.5)) +
-  
-  geom_smooth(aes(x = date, y = sexual_assault_ts))
-
-narcoticsplot <-  crime_pop %>% 
-  ggplot() +
-  geom_line(aes(x = date, y = narcotics_ts)) +
-  ggtitle(label = paste0('Crime Rate for Narcotics'),
-          subtitle = 'From 2011 to 2020') +
-  ylab('Narcotics Rate per Capita') +
-  xlab('Date') +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.subtitle = element_text(hjust = 0.5)) +
-  
-  geom_smooth(aes(x = date, y = narcotics_ts))
-
-batt_ass_plot <-  crime_pop %>% 
-  ggplot() +
-  geom_line(aes(x = date, y = assault_battery_ts)) +
-  ggtitle(label = paste0('Crime Rate for Assault/Battery'),
-          subtitle = 'From 2011 to 2020') +
-  ylab('Assault/Battery Rate per Capita') +
-  xlab('Date') +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.subtitle = element_text(hjust = 0.5)) +
-  
-  geom_smooth(aes(x = date, y = assault_battery_ts))
-
-ggplotly(sexualplot)
-ggplotly(theftplot)
-ggplotly(narcoticsplot)
-ggplotly(batt_ass_plot)
-ggplotly(homicideplot)
-
-
-#Raw data plots
-ts.plot(homicide_ts)
-ts.plot(theft_ts)
-ts.plot(narcotics_ts)
-ts.plot(sexual_assault_ts)
-ts.plot(assault_battery_ts)
-
-
-
-diff_theft <-  crime_pop %>% 
-  ggplot() +
-  geom_line(aes(x = date, y = first_theft)) +
-  ggtitle(label = paste0('Crime Rate for First Difference of Theft'),
-          subtitle = 'From 2011 to 2020') +
-  ylab('Theft Rate per Capita') +
-  xlab('Date') +
-  theme(plot.title = element_text(hjust = 0.5),
-        plot.subtitle = element_text(hjust = 0.5)) +
-  
-  geom_smooth(aes(x = date, y = first_theft))
-
-
-
-
-
 
 #Narcotics EDA
 ts.plot(narcotics_ts, main = 'Narcotics Raw Data Time Series', 
@@ -284,3 +150,10 @@ adf.test(diff(assault_battery_ts))
 plot(decompose(assault_battery_ts))
 plot(decompose(diff(assault_battery_ts)))
 
+
+
+
+
+
+assault_battery_ts <- ts(crime_pop$ASSAULT +crime_pop$BATTERY, start = c(2011, 1),
+                         frequency = 12)
